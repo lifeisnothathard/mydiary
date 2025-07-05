@@ -131,78 +131,35 @@ class _LoginPageState extends State<LoginPage> {
     // Get screen size for responsive layout
     final screenWidth = MediaQuery.of(context).size.width;
     // Determine if we are on a smaller screen (e.g., mobile)
-    final bool isSmallScreen = screenWidth < 800;
+    final bool isSmallScreen = screenWidth < 600; // Adjusted breakpoint for a single column
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0, // No shadow for the app bar
-        title: const Text(
-          'MYDIARY', // Changed from NOTESYNCS
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        actions: [
-          // Top right navigation icons
-          _buildAppBarIconText(Icons.home, 'Home', () {
-            // Implement navigation to Home
-            _showErrorSnackbar('Home clicked!');
-          }),
-          _buildAppBarIconText(Icons.login, 'Login', () {
-            // Already on login, perhaps do nothing or scroll to top
-          }),
-          const SizedBox(width: 16), // Right padding for app bar actions
-        ],
-      ),
+      backgroundColor: const Color(0xFF4CAF50), // Green background color
       body: Center(
-        child: Container(
-          // Constrain the overall content width for larger screens
-          constraints: const BoxConstraints(maxWidth: 1200),
-          padding: const EdgeInsets.all(16.0),
-          child: isSmallScreen
-              ? _buildSmallScreenLayout() // Use a single column for small screens
-              : _buildLargeScreenLayout(), // Use a row with two panes for large screens
-        ),
-      ),
-    );
-  }
-
-  /// Builds the layout for larger screens (two-pane layout).
-  Widget _buildLargeScreenLayout() {
-    return Row(
-      children: [
-        // Left Pane (Green) - Flexible to take available space
-        Flexible(
-          flex: 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50), // Green color
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: SingleChildScrollView( // Allow scrolling if content overflows on small screens
+          padding: const EdgeInsets.all(24.0), // Overall padding
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // MyDiary Logo and Text
+              Column(
                 children: [
-                  Icon(
+                  const Icon(
                     FontAwesomeIcons.solidPenToSquare, // Pencil icon
                     color: Colors.white,
                     size: 80,
                   ),
-                  SizedBox(height: 20),
-                  Text(
-                    'MyDiary', // Changed from Notesyncs
+                  const SizedBox(height: 20),
+                  const Text(
+                    'MyDiary',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
+                  const SizedBox(height: 10),
+                  const Text(
                     'Write your thoughts and share them with the world',
                     style: TextStyle(
                       color: Colors.white70,
@@ -212,264 +169,195 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 30), // Space between panes
+              const SizedBox(height: 40), // Space between logo and form card
 
-        // Right Pane (Login Form Card) - Flexible to take remaining space
-        Flexible(
-          flex: 1,
-          child: Center(
-            child: _buildLoginFormCard(), // Reusable login form card
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Builds the layout for smaller screens (single column layout).
-  Widget _buildSmallScreenLayout() {
-    return SingleChildScrollView( // Allow scrolling on small screens if content overflows
-      child: Column(
-        children: [
-          // Left Pane (Green) - Condensed for small screens
-          Container(
-            height: 200, // Fixed height for the green section on small screens
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50), // Green color
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    FontAwesomeIcons.solidPenToSquare,
-                    color: Colors.white,
-                    size: 60,
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'MyDiary', // Changed from Notesyncs
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+              // Login Form Card
+              Container(
+                width: isSmallScreen ? double.infinity : 450, // Full width on small, fixed on large
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15), // Rounded corners for the card
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 5,
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
                     ),
-                  ),
-                  Text(
-                    'Write your thoughts and share them with the world',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Email Address field
+                    const Text(
+                      'Email Address',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 30), // Space between sections
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'you@example.com',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8), // Rounded input field
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100], // Light grey background for input
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-          // Right Pane (Login Form Card)
-          _buildLoginFormCard(), // Reusable login form card
-        ],
-      ),
-    );
-  }
+                    // Password field
+                    const Text(
+                      'Password',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: !_isPasswordVisible, // Toggles visibility
+                      decoration: InputDecoration(
+                        hintText: '*********',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8), // Rounded input field
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100], // Light grey background for input
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible; // Update state to toggle visibility
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
-  /// Reusable widget for the login form card.
-  Widget _buildLoginFormCard() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 5,
-            blurRadius: 7,
-            offset: const Offset(0, 3), // changes position of shadow
-          ),
-        ],
-      ),
-      constraints: const BoxConstraints(maxWidth: 450), // Max width for the login form card
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Column takes minimum space required
-        crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children horizontally
-        children: [
-          // Email Address field
-          const Text(
-            'Email Address',
-            style: TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              hintText: 'you@example.com',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true, // Makes the input field more compact
-            ),
-          ),
-          const SizedBox(height: 20),
+                    // Forgot password button
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          // TODO: Implement forgot password logic
+                          _showErrorSnackbar('Forgot password functionality to be implemented!');
+                        },
+                        child: const Text(
+                          'Forgot password?',
+                          style: TextStyle(color: Color(0xFF4CAF50)), // Green color
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30), // Increased spacing before button
 
-          // Password field
-          const Text(
-            'Password',
-            style: TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _passwordController,
-            obscureText: !_isPasswordVisible, // Toggles visibility
-            decoration: InputDecoration(
-              hintText: '*********',
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.grey,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible; // Update state to toggle visibility
-                  });
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
+                    // Log in button
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _handleEmailPasswordSignIn, // Disable when loading
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50), // Button background color (Green)
+                        foregroundColor: Colors.white, // Text color
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Rounded corners
+                        ),
+                        elevation: 0, // No shadow for the button
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white) // Loading indicator
+                          : const Text(
+                              'Log in',
+                              style: TextStyle(fontSize: 18),
+                              
+                            ),
+                    ),
+                    const SizedBox(height: 20),
 
-          // Forgot password button
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {
-                // TODO: Implement forgot password logic
-                _showErrorSnackbar('Forgot password functionality to be implemented!');
-              },
-              child: const Text(
-                'Forgot password?',
-                style: TextStyle(color: Color(0xFF4CAF50)), // Green color
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
+                    // "Or continue with" text
+                    const Center(
+                      child: Text(
+                        'Or continue with',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-          // Sign in button
-          ElevatedButton(
-            onPressed: _isLoading ? null : _handleEmailPasswordSignIn, // Disable when loading
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50), // Button background color (Green)
-              foregroundColor: Colors.white, // Text color
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8), // Rounded corners
-              ),
-            ),
-            child: _isLoading
-                ? const CircularProgressIndicator(color: Colors.white) // Loading indicator
-                : const Text(
-                    'Sign in',
-                    style: TextStyle(fontSize: 18),
-                  ),
-          ),
-          const SizedBox(height: 20),
+                    // Google Sign-in button
+                    OutlinedButton(
+                      onPressed: _isLoading ? null : _handleGoogleSignIn, // Disable when loading
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey), // Grey border
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Google logo image (ensure 'assets/google_logo.png' exists and is declared in pubspec.yaml)
+                          Image.asset(
+                            'assets/google_logo.png',
+                            height: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Sign in with Google',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-          // "Or continue with" text
-          const Center(
-            child: Text(
-              'Or continue with',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Google Sign-in button
-          OutlinedButton(
-            onPressed: _isLoading ? null : _handleGoogleSignIn, // Disable when loading
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.grey), // Grey border
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Google logo image (ensure 'assets/google_logo.png' exists and is declared in pubspec.yaml)
-                Image.asset(
-                  'assets/google_logo.png',
-                  height: 24,
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Sign in with Google',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // "Don't have an account? Sign up" text and button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Don't have an account?",
-                style: TextStyle(color: Colors.black87),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Navigate to the sign-up page
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const SignUpPage()),
-                  );
-                },
-                child: const Text(
-                  'Sign up',
-                  style: TextStyle(color: Color(0xFF4CAF50)), // Green color
+                    // "Don't have an account? Sign up" text and button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Don't have an account?",
+                          style: TextStyle(color: Colors.black87),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // Navigate to the sign-up page
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const SignUpPage()),
+                            );
+                          },
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(color: Color(0xFF4CAF50)), // Green color
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  /// Helper widget to build app bar icons with text.
-  Widget _buildAppBarIconText(IconData icon, String text, VoidCallback onPressed) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: InkWell(
-        onTap: onPressed,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.black87),
-            Text(
-              text,
-              style: const TextStyle(color: Colors.black87, fontSize: 12),
-            ),
-          ],
         ),
       ),
     );
   }
+
+  // Removed _buildAppBarIconText as the new design doesn't have a top app bar like before.
+  // If you need top navigation, you would re-introduce an AppBar with appropriate icons.
 }
