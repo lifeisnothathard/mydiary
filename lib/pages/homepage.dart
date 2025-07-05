@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mydiary/pages/login.dart';
 import 'package:mydiary/pages/note_detail_page.dart';
@@ -9,9 +9,11 @@ import 'package:mydiary/pages/recent_notes_view.dart';
 import 'package:mydiary/services/auth.dart';
 import 'package:mydiary/services/new_entry.dart';
 import 'package:mydiary/services/themes/themeprovider.dart';
+import 'package:mydiary/widgets/filter/sort_option.dart';
 import 'package:mydiary/widgets/home_app_bar.dart';
 import 'package:mydiary/widgets/note_editor.dart';
 import 'package:mydiary/widgets/note_utils.dart';
+import 'package:mydiary/widgets/search_func.dart';
 import 'package:mydiary/widgets/sidebar.dart';
 import 'package:provider/provider.dart';
 import 'dart:async'; // For Timer
@@ -37,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Timer? _debounceTimer;
   bool _isUploadingImage = false;
+
+  SortOption _currentSortOption = SortOption.dateNewest; // Default sort option
 
   @override
   void initState() {
@@ -78,15 +82,59 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- Firestore Data Management ---
 
   void _listenToNotes() {
-    _firestore
+    if (_currentUser == null) return;
+
+    Query<Map<String, dynamic>> notesQuery = _firestore
         .collection('users')
         .doc(_currentUser!.uid)
-        .collection('notes')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .listen((snapshot) {
+        .collection('notes');
+
+    // Apply sorting based on _currentSortOption
+    switch (_currentSortOption) {
+      case SortOption.dateNewest:
+        notesQuery = notesQuery.orderBy('createdAt', descending: true);
+        break;
+      case SortOption.dateOldest:
+        notesQuery = notesQuery.orderBy('createdAt', descending: false);
+        break;
+      case SortOption.alphabeticalAsc:
+        // For alphabetical sort, we'll sort by the first line of content.
+        // Firestore doesn't directly support sorting by a computed field or substring.
+        // We will fetch and then sort in memory.
+        // For 'content', Firestore might need an index if you query directly on it.
+        // For now, we'll fetch all and sort in memory for simplicity.
+        // If 'title' field existed, it would be easier: notesQuery = notesQuery.orderBy('title', descending: false);
+        break;
+      case SortOption.alphabeticalDesc:
+        // Similar to alphabeticalAsc, sort in memory.
+        break;
+      case SortOption.favorites:
+        // This assumes a 'isFavorite' boolean field exists in your note documents.
+        // You would need to add this field to your notes when creating/editing them.
+        notesQuery = notesQuery.where('isFavorite', isEqualTo: true).orderBy('createdAt', descending: true);
+        break;
+    }
+
+    notesQuery.snapshots().listen((snapshot) {
+      List<Map<String, dynamic>> fetchedNotes = snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+
+      // Apply in-memory sorting for alphabetical options
+      if (_currentSortOption == SortOption.alphabeticalAsc) {
+        fetchedNotes.sort((a, b) {
+          final String titleA = (a['content'] as String? ?? '').split('\n')[0].toLowerCase();
+          final String titleB = (b['content'] as String? ?? '').split('\n')[0].toLowerCase();
+          return titleA.compareTo(titleB);
+        });
+      } else if (_currentSortOption == SortOption.alphabeticalDesc) {
+        fetchedNotes.sort((a, b) {
+          final String titleA = (a['content'] as String? ?? '').split('\n')[0].toLowerCase();
+          final String titleB = (b['content'] as String? ?? '').split('\n')[0].toLowerCase();
+          return titleB.compareTo(titleA); // Reverse for descending
+        });
+      }
+
       setState(() {
-        _notes = snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+        _notes = fetchedNotes;
 
         if (_selectedNoteId == null ||
             !_notes.any((note) => note['id'] == _selectedNoteId)) {
@@ -117,7 +165,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-
   void _selectNote(String noteId) {
     setState(() {
       _selectedNoteId = noteId;
@@ -145,6 +192,22 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _navigateToSearchPage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const SearchPage()),
+    );
+  }
+
+  // New method to handle sort option selection from dropdowns
+  void _onSortOptionSelected(SortOption selectedOption) {
+    if (selectedOption != _currentSortOption) {
+      setState(() {
+        _currentSortOption = selectedOption;
+      });
+      _listenToNotes(); // Re-fetch/re-sort notes with the new sort order
+    }
   }
 
   Future<void> _saveCurrentNote({bool showSnackbar = true}) async {
@@ -274,7 +337,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final int cursorPosition = _newEntryController.selection.baseOffset;
       final String currentText = _newEntryController.text;
-      final String newText = '${currentText.substring(0, cursorPosition)}\n![Image]($downloadUrl)\n${currentText.substring(cursorPosition)}';
+      final String newText = currentText.substring(0, cursorPosition) +
+                             '\n![Image]($downloadUrl)\n' +
+                             currentText.substring(cursorPosition);
 
       _newEntryController.text = newText;
       _newEntryController.selection = TextSelection.fromPosition(
@@ -338,12 +403,18 @@ class _HomeScreenState extends State<HomeScreen> {
         onToggleTheme: () {
           Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
         },
+        onNavigateToSearchPage: _navigateToSearchPage,
+        onSortOptionSelected: _onSortOptionSelected, // Pass the callback
+        currentSortOption: _currentSortOption, // Pass current sort option
       ),
       body: isSmallScreen
           ? RecentNotesView( // Use the new RecentNotesView widget
               notes: _notes,
               onNavigateToNoteDetailPage: _navigateToNoteDetailPage,
-              isDarkMode: isDarkMode,
+              onNavigateToSearchPage: _navigateToSearchPage,
+              onSortOptionSelected: _onSortOptionSelected, // Pass the callback
+              currentSortOption: _currentSortOption, // Pass current sort option
+              isDarkMode: isDarkMode, onNavigateToFilterPage: () {  },
             )
           : Row(
               children: [
@@ -352,8 +423,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedNoteId: _selectedNoteId,
                   onSelectNote: _selectNote,
                   onNavigateToAddNotePage: _navigateToAddNotePage,
-                  isSmallScreen: isSmallScreen,
-                  isDarkMode: isDarkMode,
+                  onSortOptionSelected: _onSortOptionSelected, // Pass the callback
+                  currentSortOption: _currentSortOption, // Pass current sort option
+                  isSmallScreen: isSmallScreen, // This will be false here, but still passed
+                  isDarkMode: isDarkMode, onNavigateToFilterPage: () {  },
                 ),
                 NoteEditor(
                   selectedNoteId: _selectedNoteId,
@@ -366,6 +439,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+      floatingActionButton: isSmallScreen
+          ? FloatingActionButton(
+              onPressed: _navigateToAddNotePage,
+              backgroundColor: theme.primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 }

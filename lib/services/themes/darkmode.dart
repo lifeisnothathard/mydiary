@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-// Define your dark mode theme data
+// Define your dark mode theme data (Green based)
 final ThemeData darkModeTheme = ThemeData(
   brightness: Brightness.dark, // Explicitly set brightness to dark
-  primarySwatch: Colors.green, // A primary color for your app
-  primaryColor: const Color(0xFF4CAF50), // Main green color (can be adjusted for dark mode if needed)
+  primarySwatch: Colors.green, // Primary color for your app
+  primaryColor: const Color(0xFF4CAF50), // Main green color (Material Green 500)
 
   // Scaffold background color (overall page background in dark mode)
-  scaffoldBackgroundColor: const Color(0xFF121212), // Very dark grey/black
+  scaffoldBackgroundColor: const Color(0xFF1C1C1C), // Very dark grey/near black
 
   // AppBar Theme
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF1E1E1E), // Darker grey for app bar background
+    backgroundColor: Color.fromARGB(255, 13, 60, 14), // Darker grey for app bar background
     elevation: 0, // No shadow
     iconTheme: IconThemeData(color: Colors.white), // White icons
     titleTextStyle: TextStyle(
@@ -35,7 +35,7 @@ final ThemeData darkModeTheme = ThemeData(
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
-      side: BorderSide(color: Colors.grey[700]!), // Lighter grey border for contrast
+      side: BorderSide(color: Colors.green[700]!), // Darker green border for contrast
       foregroundColor: Colors.white, // White text for outlined buttons
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -51,7 +51,7 @@ final ThemeData darkModeTheme = ThemeData(
   // Input Decoration Theme (for TextField styling)
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: const Color(0xFF2C2C2C), // Dark grey background for input fields
+    fillColor: const Color(0xFF383838), // Dark grey background for input fields
     hintStyle: TextStyle(color: Colors.grey[500]), // Lighter hint text
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
@@ -74,14 +74,18 @@ final ThemeData darkModeTheme = ThemeData(
     color: Colors.grey[300], // Default icon color (light grey)
   ),
 
-  // Card Theme (if you use Card widgets)
+  // Card Theme (for the note cards)
   cardTheme: CardThemeData(
-    color: const Color(0xFF1E1E1E), // Darker grey for cards
+    color: const Color.fromARGB(255, 0, 80, 12), // Slightly lighter dark grey for cards
     elevation: 2,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(15),
     ),
   ),
 
-  // Add more theme properties as needed (e.g., colorScheme, dividerTheme, etc.)
+  // Divider Theme (for subtle separators)
+  dividerTheme: DividerThemeData(
+    color: Colors.grey[700],
+    thickness: 0.5,
+  ),
 );

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-// Define your light mode theme data
+// Define your light mode theme data (Green based)
 final ThemeData lightModeTheme = ThemeData(
   brightness: Brightness.light, // Explicitly set brightness to light
-  primarySwatch: Colors.green, // A primary color for your app
-  primaryColor: const Color(0xFF4CAF50), // Main green color
+  primarySwatch: Colors.green, // Primary color for your app
+  primaryColor: const Color(0xFF4CAF50), // Main green color (Material Green 500)
 
   // Scaffold background color (matches the overall page background in light mode)
-  scaffoldBackgroundColor: const Color(0xFFF0F2F5), // Light grey background
+  scaffoldBackgroundColor: const Color(0xFFF0F5F0), // Very light green-tinted grey
 
   // AppBar Theme
   appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.white, // White app bar background
+    backgroundColor: Colors.lightGreen, // Light green app bar background
     elevation: 0, // No shadow
     iconTheme: IconThemeData(color: Colors.black87), // Dark icons
     titleTextStyle: TextStyle(
@@ -76,12 +76,16 @@ final ThemeData lightModeTheme = ThemeData(
 
   // Card Theme (if you use Card widgets)
   cardTheme: CardThemeData(
-    color: Colors.white,
+    color: Colors.green[100], // Light green card background
     elevation: 2,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(15),
     ),
   ),
 
-  // Add more theme properties as needed (e.g., colorScheme, dividerTheme, etc.)
+  // Divider Theme (for subtle separators)
+  dividerTheme: DividerThemeData(
+    color: Colors.grey[300],
+    thickness: 0.5,
+  ),
 );

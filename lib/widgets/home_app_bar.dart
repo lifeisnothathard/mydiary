@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:mydiary/widgets/filter/sort_option.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isDarkMode;
   final VoidCallback onLogout;
   final VoidCallback onToggleTheme;
+  final VoidCallback onNavigateToSearchPage;
 
   const HomeAppBar({
     super.key,
     required this.isDarkMode,
     required this.onLogout,
     required this.onToggleTheme,
+    required this.onNavigateToSearchPage, required void Function(SortOption selectedOption) onSortOptionSelected, required SortOption currentSortOption,
   });
 
   @override
@@ -19,15 +22,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: theme.appBarTheme.backgroundColor,
       elevation: theme.appBarTheme.elevation,
       leading: IconButton(icon: Icon(Icons.menu, color: theme.iconTheme.color), onPressed: () {}),
-      title: Row( // Grouping these icons in the title area
-        children: [
-          IconButton(icon: Icon(Icons.folder_open, color: theme.iconTheme.color), onPressed: () {}),
-          IconButton(icon: Icon(Icons.share, color: theme.iconTheme.color), onPressed: () {}),
-        ],
-      ),
+      title: Text('MyDiary', style: theme.textTheme.titleLarge),
       actions: [
-        IconButton(icon: Icon(Icons.person, color: theme.iconTheme.color), onPressed: () {}),
-        IconButton(icon: Icon(Icons.settings, color: theme.iconTheme.color), onPressed: () {}),
         IconButton(
           icon: Icon(Icons.logout, color: theme.iconTheme.color),
           onPressed: onLogout,

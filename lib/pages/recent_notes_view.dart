@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mydiary/widgets/filter/sort_option.dart';
 import 'package:mydiary/widgets/note_utils.dart';
 
 typedef NavigateToNoteDetailPageCallback = void Function(String noteId, String initialContent);
@@ -8,12 +9,20 @@ class RecentNotesView extends StatelessWidget {
   final List<Map<String, dynamic>> notes;
   final NavigateToNoteDetailPageCallback onNavigateToNoteDetailPage;
   final bool isDarkMode;
+  final VoidCallback onNavigateToSearchPage;
+  final VoidCallback onNavigateToFilterPage;
+  final void Function(SortOption selectedOption) onSortOptionSelected;
+  final SortOption currentSortOption;
 
   const RecentNotesView({
     super.key,
     required this.notes,
     required this.onNavigateToNoteDetailPage,
     required this.isDarkMode,
+    required this.onNavigateToSearchPage,
+    required this.onNavigateToFilterPage,
+    required this.onSortOptionSelected,
+    required this.currentSortOption,
   });
 
   // Group notes by formatted date category
@@ -49,39 +58,31 @@ class RecentNotesView extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.search, color: theme.iconTheme.color),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Search functionality to be implemented!')),
-                  );
-                },
-              ),
-            ],
-          ),
+          icon: Icon(Icons.search, color: theme.iconTheme.color), // Search icon
+          onPressed: onNavigateToSearchPage, // Navigate to SearchPage
         ),
-
-        // Search Field (non-functional placeholder)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: theme.inputDecorationTheme.fillColor ?? Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search',
-                hintStyle: theme.inputDecorationTheme.hintStyle,
-                prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        PopupMenuButton<SortOption>(
+          icon: Icon(Icons.sort, color: theme.iconTheme.color),
+          onSelected: onSortOptionSelected, // Use the callback
+          itemBuilder: (BuildContext context) => SortOption.values.map((option) {
+            return PopupMenuItem<SortOption>(
+              value: option,
+              child: Row(
+                children: [
+                  Icon(
+                    option == currentSortOption ? Icons.radio_button_on : Icons.radio_button_off,
+                    color: theme.primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(option.displayName, style: theme.textTheme.bodyMedium),
+                ],
               ),
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodyLarge?.color),
-              enabled: false, // Placeholder for future logic
-            ),
-          ),
+            );
+          }).toList(),
         ),
+      ],
+    ),
+  ),
 
         // Notes list
         Expanded(

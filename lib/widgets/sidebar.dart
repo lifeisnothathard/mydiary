@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mydiary/widgets/filter/sort_option.dart';
 import 'package:mydiary/widgets/note_utils.dart'; // For Timestamp
+
+// Define a typedef for the filter navigation callback
+typedef NavigateToFilterPageCallback = void Function();
 
 class Sidebar extends StatelessWidget {
   final List<Map<String, dynamic>> notes;
   final String? selectedNoteId;
   final Function(String) onSelectNote;
   final VoidCallback onNavigateToAddNotePage;
+  final NavigateToFilterPageCallback onNavigateToFilterPage; // New callback for filter
   final bool isSmallScreen;
   final bool isDarkMode;
 
@@ -16,8 +21,9 @@ class Sidebar extends StatelessWidget {
     required this.selectedNoteId,
     required this.onSelectNote,
     required this.onNavigateToAddNotePage,
+    required this.onNavigateToFilterPage, // Required in constructor
     required this.isSmallScreen,
-    required this.isDarkMode,
+    required this.isDarkMode, required void Function(SortOption selectedOption) onSortOptionSelected, required SortOption currentSortOption,
   });
 
   @override
@@ -46,11 +52,52 @@ class Sidebar extends StatelessWidget {
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.textTheme.bodyLarge?.color,
               fontWeight: FontWeight.bold,
-              fontSize: isSmallScreen ? 20 : 24, // Responsive font size
+              fontSize: isSmallScreen ? 20 : 24,
             ),
           ),
           const SizedBox(height: 10),
-          // ... rest of the sidebar content
+          // Search Bar in Sidebar
+          Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: theme.inputDecorationTheme.fillColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: 'Search',
+                hintStyle: theme.inputDecorationTheme.hintStyle,
+                prefixIcon: Icon(Icons.search, color: theme.iconTheme.color),
+                suffixIcon: Icon(Icons.mic, color: theme.iconTheme.color),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row( // Group New Note and Filter buttons
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onNavigateToAddNotePage,
+                  icon: Icon(Icons.add_circle_outline, color: theme.primaryColor),
+                  label: Text('New Note', style: TextStyle(color: theme.primaryColor)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: theme.primaryColor),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8), // Space between buttons
+              IconButton( // Filter button
+                icon: Icon(Icons.sort, color: theme.iconTheme.color),
+                onPressed: onNavigateToFilterPage, // Navigate to FilterPage
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Expanded(
             child: ListView.builder(
               itemCount: categorizedNotes.keys.length,
@@ -74,7 +121,6 @@ class Sidebar extends StatelessWidget {
                       final noteContent = note['content'] as String? ?? '';
                       final lines = noteContent.trim().split('\n');
                       final title = lines.isNotEmpty && lines[0].isNotEmpty ? lines[0] : 'New Note';
-                      // Ensure snippet is not just empty space or the same as title if only one line
                       String snippet = '';
                       if (lines.length > 1 && lines[1].trim().isNotEmpty) {
                         snippet = lines[1].trim();
