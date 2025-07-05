@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
       // If sign-in is successful, navigate to the home screen
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
       // If successful, navigate to the home screen
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomePage()),
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {

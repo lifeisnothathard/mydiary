@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:mydiary/widgets/note_utils.dart'; // For Timestamp in title
+import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp in title
+import 'package:image_picker/image_picker.dart'; // For ImageSource enum
+import 'package:mydiary/widgets/note_utils.dart'; // Import helper functions
 
 class NoteEditor extends StatelessWidget {
   final String? selectedNoteId;
   final List<Map<String, dynamic>> notes;
   final TextEditingController newEntryController;
   final bool isUploadingImage;
-  final VoidCallback onPickImageAndUpload;
+  final Function(ImageSource) onPickImageAndUpload; // Changed to accept ImageSource
+  final VoidCallback onDeleteCurrentNote;
   final bool isDarkMode;
 
   const NoteEditor({
@@ -15,7 +18,8 @@ class NoteEditor extends StatelessWidget {
     required this.notes,
     required this.newEntryController,
     required this.isUploadingImage,
-    required this.onPickImageAndUpload,
+    required this.onPickImageAndUpload, // Updated
+    required this.onDeleteCurrentNote,
     required this.isDarkMode,
   });
 
@@ -23,7 +27,6 @@ class NoteEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Helper to get selected note's content for title display
     Map<String, dynamic>? getSelectedNote() {
       if (selectedNoteId == null) return null;
       return firstWhereOrNull(notes, (note) => note['id'] == selectedNoteId);
@@ -75,8 +78,7 @@ class NoteEditor extends StatelessWidget {
                           IconButton(icon: Icon(Icons.text_format, color: theme.iconTheme.color), onPressed: () {}),
                           IconButton(icon: Icon(Icons.format_list_bulleted, color: theme.iconTheme.color), onPressed: () {}),
                           IconButton(icon: Icon(Icons.checklist, color: theme.iconTheme.color), onPressed: () {}),
-                          IconButton(icon: Icon(Icons.attach_file, color: theme.iconTheme.color), onPressed: () {}),
-                          // Image picker button
+                          // Attachment/Image Dropdown Button
                           isUploadingImage
                               ? SizedBox(
                                   width: 24,
@@ -86,14 +88,36 @@ class NoteEditor extends StatelessWidget {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : IconButton(icon: Icon(Icons.image, color: theme.iconTheme.color), onPressed: onPickImageAndUpload),
+                              : PopupMenuButton<ImageSource>( // Changed to PopupMenuButton
+                                  icon: Icon(Icons.attach_file, color: theme.iconTheme.color), // Attachment icon
+                                  onSelected: (ImageSource source) {
+                                    onPickImageAndUpload(source); // Pass selected source
+                                  },
+                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<ImageSource>>[
+                                    PopupMenuItem<ImageSource>(
+                                      value: ImageSource.gallery,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.photo_library, color: theme.iconTheme.color),
+                                          const SizedBox(width: 8),
+                                          Text('Upload Image', style: theme.textTheme.bodyMedium),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem<ImageSource>(
+                                      value: ImageSource.camera,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.camera_alt, color: theme.iconTheme.color),
+                                          const SizedBox(width: 8),
+                                          Text('Take Photo', style: theme.textTheme.bodyMedium),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                           IconButton(icon: Icon(Icons.lock_outline, color: theme.iconTheme.color), onPressed: () {}),
-                          IconButton(icon: Icon(Icons.delete_outline, color: theme.iconTheme.color), onPressed: () {
-                            // TODO: Implement delete note functionality
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Delete note functionality to be implemented!")),
-                            );
-                          }),
+                          IconButton(icon: Icon(Icons.delete_outline, color: theme.iconTheme.color), onPressed: onDeleteCurrentNote),
                         ],
                       ),
                     ),

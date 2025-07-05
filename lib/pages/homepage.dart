@@ -1,9 +1,8 @@
-import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mydiary/pages/login.dart';
 import 'package:mydiary/services/auth.dart';
 import 'package:mydiary/services/new_entry.dart';
@@ -13,15 +12,18 @@ import 'package:mydiary/widgets/note_editor.dart';
 import 'package:mydiary/widgets/sidebar.dart';
 import 'package:provider/provider.dart';
 import 'dart:async'; // For Timer
+import 'package:image_picker/image_picker.dart'; // For picking images
+import 'package:firebase_storage/firebase_storage.dart'; // For Firebase Storage
+import 'package:flutter_image_compress/flutter_image_compress.dart'; // For image compression
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _firebaseStorage = FirebaseStorage.instance;
   User? _currentUser;
@@ -167,15 +169,65 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _deleteCurrentNote() async {
+    if (_selectedNoteId == null) {
+      _showErrorSnackbar("No note selected to delete.");
+      return;
+    }
+
+    final bool confirmDelete = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Note'),
+        content: const Text('Are you sure you want to delete this note? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .collection('notes')
+          .doc(_selectedNoteId)
+          .delete();
+
+      _showSuccessSnackbar("Note deleted successfully!");
+
+      setState(() {
+        _selectedNoteId = null;
+        _newEntryController.clear();
+      });
+    } catch (e) {
+      debugPrint("Error deleting note: $e");
+      _showErrorSnackbar("Failed to delete note: $e");
+    }
+  }
+
+
   // --- Image Picking and Upload ---
-  Future<void> _pickImageAndUpload() async {
+  Future<void> _pickImageAndUpload(ImageSource source) async { // Added ImageSource parameter
     if (_selectedNoteId == null) {
       _showErrorSnackbar("Please select or create a note before adding an image.");
       return;
     }
 
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: source); // Use the passed source
 
     if (image == null) {
       return;
@@ -191,9 +243,24 @@ class _HomePageState extends State<HomePage> {
           .ref()
           .child('users/${_currentUser!.uid}/notes_images/$fileName');
 
-      final UploadTask uploadTask = storageRef.putFile(
-        (await image.readAsBytes()) as File,
-        SettableMetadata(contentType: 'image/${image.name.split('.').last}'),
+      final Uint8List? imageBytes = await image.readAsBytes();
+
+      if (imageBytes == null) {
+        _showErrorSnackbar("Failed to read image bytes.");
+        return;
+      }
+
+      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minHeight: 80,
+        minWidth: 80,
+        quality: 60,
+        format: CompressFormat.jpeg,
+      );
+
+      final UploadTask uploadTask = storageRef.putData(
+        compressedBytes,
+        SettableMetadata(contentType: 'image/jpeg'),
       );
 
       final TaskSnapshot snapshot = await uploadTask;
@@ -201,7 +268,9 @@ class _HomePageState extends State<HomePage> {
 
       final int cursorPosition = _newEntryController.selection.baseOffset;
       final String currentText = _newEntryController.text;
-      final String newText = '${currentText.substring(0, cursorPosition)}\n![Image]($downloadUrl)\n${currentText.substring(cursorPosition)}';
+      final String newText = currentText.substring(0, cursorPosition) +
+                             '\n![Image]($downloadUrl)\n' +
+                             currentText.substring(cursorPosition);
 
       _newEntryController.text = newText;
       _newEntryController.selection = TextSelection.fromPosition(
@@ -248,12 +317,12 @@ class _HomePageState extends State<HomePage> {
     final bool isSmallScreen = screenWidth < 800;
 
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    // final isDarkMode = theme.brightness == Brightness.dark; // isDarkMode is passed from HomeAppBar
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: HomeAppBar( // Using the new HomeAppBar widget
-        isDarkMode: isDarkMode,
+        isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
         onLogout: () async {
           await AuthService().signOut();
           if (context.mounted) {
@@ -274,15 +343,16 @@ class _HomePageState extends State<HomePage> {
             onSelectNote: _selectNote,
             onNavigateToAddNotePage: _navigateToAddNotePage,
             isSmallScreen: isSmallScreen,
-            isDarkMode: isDarkMode,
+            isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
           ),
           NoteEditor( // Using the new NoteEditor widget
             selectedNoteId: _selectedNoteId,
             notes: _notes,
             newEntryController: _newEntryController,
             isUploadingImage: _isUploadingImage,
-            onPickImageAndUpload: _pickImageAndUpload,
-            isDarkMode: isDarkMode,
+            onPickImageAndUpload: _pickImageAndUpload, // Pass the function
+            onDeleteCurrentNote: _deleteCurrentNote, // Pass the delete function
+            isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
           ),
         ],
       ),
