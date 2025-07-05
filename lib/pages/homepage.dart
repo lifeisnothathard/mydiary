@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mydiary/pages/login.dart';
+import 'package:mydiary/pages/note_detail_page.dart';
+import 'package:mydiary/pages/recent_notes_view.dart';
 import 'package:mydiary/services/auth.dart';
 import 'package:mydiary/services/new_entry.dart';
 import 'package:mydiary/services/themes/themeprovider.dart';
 import 'package:mydiary/widgets/home_app_bar.dart';
 import 'package:mydiary/widgets/note_editor.dart';
+import 'package:mydiary/widgets/note_utils.dart';
 import 'package:mydiary/widgets/sidebar.dart';
 import 'package:provider/provider.dart';
 import 'dart:async'; // For Timer
@@ -95,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _newEntryController.clear();
           }
         } else {
-          final currentSelectedNote = _firstWhereOrNull(_notes, (note) => note['id'] == _selectedNoteId);
+          final currentSelectedNote = firstWhereOrNull(_notes, (note) => note['id'] == _selectedNoteId);
           if (currentSelectedNote != null) {
             if (_newEntryController.text != (currentSelectedNote['content'] ?? '')) {
               _newEntryController.removeListener(_onNoteContentChanged);
@@ -114,19 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Map<String, dynamic>? _firstWhereOrNull(List<Map<String, dynamic>> list, bool Function(Map<String, dynamic>) test) {
-    for (var element in list) {
-      if (test(element)) {
-        return element;
-      }
-    }
-    return null;
-  }
 
   void _selectNote(String noteId) {
     setState(() {
       _selectedNoteId = noteId;
-      final selectedNote = _firstWhereOrNull(_notes, (note) => note['id'] == noteId);
+      final selectedNote = firstWhereOrNull(_notes, (note) => note['id'] == noteId);
       if (selectedNote != null) {
         _newEntryController.removeListener(_onNoteContentChanged);
         _newEntryController.text = selectedNote['content'] ?? '';
@@ -138,6 +133,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToAddNotePage() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const AddNotePage()),
+    );
+  }
+
+  void _navigateToNoteDetailPage(String noteId, String initialContent) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => NoteDetailPage(
+          noteId: noteId,
+          initialContent: initialContent,
+        ),
+      ),
     );
   }
 
@@ -220,14 +226,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   // --- Image Picking and Upload ---
-  Future<void> _pickImageAndUpload(ImageSource source) async { // Added ImageSource parameter
+  Future<void> _pickImageAndUpload(ImageSource source) async {
     if (_selectedNoteId == null) {
       _showErrorSnackbar("Please select or create a note before adding an image.");
       return;
     }
 
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source); // Use the passed source
+    final XFile? image = await picker.pickImage(source: source);
 
     if (image == null) {
       return;
@@ -252,9 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
         imageBytes,
-        minHeight: 80,
-        minWidth: 80,
-        quality: 60,
+        minHeight: 800,
+        minWidth: 800,
+        quality: 85,
         format: CompressFormat.jpeg,
       );
 
@@ -268,9 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final int cursorPosition = _newEntryController.selection.baseOffset;
       final String currentText = _newEntryController.text;
-      final String newText = currentText.substring(0, cursorPosition) +
-                             '\n![Image]($downloadUrl)\n' +
-                             currentText.substring(cursorPosition);
+      final String newText = '${currentText.substring(0, cursorPosition)}\n![Image]($downloadUrl)\n${currentText.substring(cursorPosition)}';
 
       _newEntryController.text = newText;
       _newEntryController.selection = TextSelection.fromPosition(
@@ -314,15 +318,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final bool isSmallScreen = screenWidth < 800;
+    final bool isSmallScreen = screenWidth < 800; // Define breakpoint for small screen
 
     final theme = Theme.of(context);
-    // final isDarkMode = theme.brightness == Brightness.dark; // isDarkMode is passed from HomeAppBar
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: HomeAppBar( // Using the new HomeAppBar widget
-        isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
+      appBar: HomeAppBar(
+        isDarkMode: isDarkMode,
         onLogout: () async {
           await AuthService().signOut();
           if (context.mounted) {
@@ -335,27 +339,33 @@ class _HomeScreenState extends State<HomeScreen> {
           Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
         },
       ),
-      body: Row(
-        children: [
-          Sidebar( // Using the new Sidebar widget
-            notes: _notes,
-            selectedNoteId: _selectedNoteId,
-            onSelectNote: _selectNote,
-            onNavigateToAddNotePage: _navigateToAddNotePage,
-            isSmallScreen: isSmallScreen,
-            isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
-          ),
-          NoteEditor( // Using the new NoteEditor widget
-            selectedNoteId: _selectedNoteId,
-            notes: _notes,
-            newEntryController: _newEntryController,
-            isUploadingImage: _isUploadingImage,
-            onPickImageAndUpload: _pickImageAndUpload, // Pass the function
-            onDeleteCurrentNote: _deleteCurrentNote, // Pass the delete function
-            isDarkMode: theme.brightness == Brightness.dark, // Pass actual dark mode state
-          ),
-        ],
-      ),
+      body: isSmallScreen
+          ? RecentNotesView( // Use the new RecentNotesView widget
+              notes: _notes,
+              onNavigateToNoteDetailPage: _navigateToNoteDetailPage,
+              isDarkMode: isDarkMode,
+            )
+          : Row(
+              children: [
+                Sidebar(
+                  notes: _notes,
+                  selectedNoteId: _selectedNoteId,
+                  onSelectNote: _selectNote,
+                  onNavigateToAddNotePage: _navigateToAddNotePage,
+                  isSmallScreen: isSmallScreen,
+                  isDarkMode: isDarkMode,
+                ),
+                NoteEditor(
+                  selectedNoteId: _selectedNoteId,
+                  notes: _notes,
+                  newEntryController: _newEntryController,
+                  isUploadingImage: _isUploadingImage,
+                  onPickImageAndUpload: _pickImageAndUpload,
+                  onDeleteCurrentNote: _deleteCurrentNote,
+                  isDarkMode: isDarkMode,
+                ),
+              ],
+            ),
     );
   }
 }

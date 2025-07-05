@@ -18,7 +18,7 @@ class NoteEditor extends StatelessWidget {
     required this.notes,
     required this.newEntryController,
     required this.isUploadingImage,
-    required this.onPickImageAndUpload, // Updated
+    required this.onPickImageAndUpload,
     required this.onDeleteCurrentNote,
     required this.isDarkMode,
   });
@@ -26,6 +26,8 @@ class NoteEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width; // Get screen width here
+    final bool isSmallScreen = screenWidth < 800; 
 
     Map<String, dynamic>? getSelectedNote() {
       if (selectedNoteId == null) return null;
@@ -61,7 +63,7 @@ class NoteEditor extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!),
                 ),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20), // Padding inside the note container
                 child: Column(
                   children: [
                     // Toolbar for editor
@@ -72,53 +74,58 @@ class NoteEditor extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          IconButton(icon: Icon(Icons.text_format, color: theme.iconTheme.color), onPressed: () {}),
-                          IconButton(icon: Icon(Icons.format_list_bulleted, color: theme.iconTheme.color), onPressed: () {}),
-                          IconButton(icon: Icon(Icons.checklist, color: theme.iconTheme.color), onPressed: () {}),
-                          // Attachment/Image Dropdown Button
-                          isUploadingImage
-                              ? SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: theme.primaryColor,
-                                    strokeWidth: 2,
+                      child: SingleChildScrollView( // Added SingleChildScrollView here
+                        scrollDirection: Axis.horizontal, // Allow horizontal scrolling for toolbar
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start, // Changed to start
+                          children: [
+                            const SizedBox(width: 8), // Add some initial padding
+                            IconButton(icon: Icon(Icons.text_format, color: theme.iconTheme.color), onPressed: () {}),
+                            IconButton(icon: Icon(Icons.format_list_bulleted, color: theme.iconTheme.color), onPressed: () {}),
+                            IconButton(icon: Icon(Icons.checklist, color: theme.iconTheme.color), onPressed: () {}),
+                            IconButton(icon: Icon(Icons.attach_file, color: theme.iconTheme.color), onPressed: () {}),
+                            isUploadingImage
+                                ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: theme.primaryColor,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : PopupMenuButton<ImageSource>(
+                                    icon: Icon(Icons.image, color: theme.iconTheme.color), // Changed to image icon
+                                    onSelected: (ImageSource source) {
+                                      onPickImageAndUpload(source);
+                                    },
+                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<ImageSource>>[
+                                      PopupMenuItem<ImageSource>(
+                                        value: ImageSource.gallery,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.photo_library, color: theme.iconTheme.color),
+                                            const SizedBox(width: 8),
+                                            Text('Upload Image', style: theme.textTheme.bodyMedium),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem<ImageSource>(
+                                        value: ImageSource.camera,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.camera_alt, color: theme.iconTheme.color),
+                                            const SizedBox(width: 8),
+                                            Text('Take Photo', style: theme.textTheme.bodyMedium),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                )
-                              : PopupMenuButton<ImageSource>( // Changed to PopupMenuButton
-                                  icon: Icon(Icons.attach_file, color: theme.iconTheme.color), // Attachment icon
-                                  onSelected: (ImageSource source) {
-                                    onPickImageAndUpload(source); // Pass selected source
-                                  },
-                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<ImageSource>>[
-                                    PopupMenuItem<ImageSource>(
-                                      value: ImageSource.gallery,
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.photo_library, color: theme.iconTheme.color),
-                                          const SizedBox(width: 8),
-                                          Text('Upload Image', style: theme.textTheme.bodyMedium),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem<ImageSource>(
-                                      value: ImageSource.camera,
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.camera_alt, color: theme.iconTheme.color),
-                                          const SizedBox(width: 8),
-                                          Text('Take Photo', style: theme.textTheme.bodyMedium),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                          IconButton(icon: Icon(Icons.lock_outline, color: theme.iconTheme.color), onPressed: () {}),
-                          IconButton(icon: Icon(Icons.delete_outline, color: theme.iconTheme.color), onPressed: onDeleteCurrentNote),
-                        ],
+                            IconButton(icon: Icon(Icons.lock_outline, color: theme.iconTheme.color), onPressed: () {}),
+                            IconButton(icon: Icon(Icons.delete_outline, color: theme.iconTheme.color), onPressed: onDeleteCurrentNote),
+                            const SizedBox(width: 8), // Add some trailing padding
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
